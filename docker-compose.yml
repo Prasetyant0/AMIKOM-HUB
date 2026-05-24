@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Penting agar Hot Reload (HMR) jalan di Windows
+      - CHOKIDAR_INTERVAL=100
+    networks:
+      - amikom-network
+
+networks:
+  amikom-network:
+    driver: bridge
