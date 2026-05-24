@@ -1,33 +1,113 @@
-/** @author Agent 1 - UI/UX Layout & Agent 2 - Logic & Integration */
-import React, { useMemo, useState } from 'react';
+/** @author ArifWicak - UI/UX Layout & Pras - Logic & Integration */
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { Search } from 'lucide-react';
 import type { Course } from '../types/course';
+import courseImage01 from '../assets/course-01.svg';
+import courseImage02 from '../assets/course-02.svg';
+import courseImage03 from '../assets/course-03.svg';
+import courseImage04 from '../assets/course-04.svg';
 
 const FILTER_OPTIONS = ['ALL', 'VIDEO', 'ARTIKEL', 'RPS', 'KUIS'] as const;
+const COURSE_IMAGES = [courseImage01, courseImage02, courseImage03, courseImage04];
+const API_URL = 'https://6a12ff9978d0434e0d5db493.mockapi.io/api/v1/courses';
+
+type CourseApi = Course & {
+    course_name: string;
+    badge_type: string;
+    modules_raw?: string;
+};
+
+type ApiCourse = Partial<Course> & {
+    id?: number | string;
+    title?: string;
+    description?: string;
+    nama?: string;
+    deskripsi?: string;
+    instructor?: string;
+    dosen?: string;
+    badgeType?: string;
+    badgeColor?: string;
+    statusBadge?: string;
+    image?: string;
+    thumbnail?: string;
+    cover?: string;
+    students?: number | string;
+    rating?: number | string;
+    modules_raw?: string;
+    modulesRaw?: string;
+};
 
 /**
  * Halaman katalog utama: hero, pencarian, filter, dan grid kartu.
  */
 export default function CatalogView({
-    courses,
-    loading,
     onSelectCourse
 }: {
-    courses: Course[];
-    loading: boolean;
     onSelectCourse: (course: Course) => void;
 }) {
+    const [courses, setCourses] = useState<CourseApi[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFilter, setSelectedFilter] = useState<(typeof FILTER_OPTIONS)[number]>('ALL');
+    const [currentPage, setCurrentPage] = useState<number>(1);
 
-    /** @author Agent 2 - Logic & Integration */
+    /** @author Pras - Logic & Integration */
+    useEffect(() => {
+        setLoading(true);
+        axios.get<ApiCourse[]>(API_URL)
+            .then((res) => {
+                const normalized = res.data.map((item, index) => {
+                    const idValue = Number(item.id);
+                    const id = Number.isFinite(idValue) ? idValue : index + 1;
+                    const course_name = item.course_name ?? item.title ?? `Mata Kuliah ${index + 1}`;
+                    const description = item.description ?? item.deskripsi ?? 'Deskripsi belum tersedia.';
+                    const instructor = item.instructor ?? item.dosen ?? 'Tim Dosen AMIKOM';
+                    const badge_type = (item.badge_type ?? item.badgeType ?? 'VIDEO').toUpperCase();
+                    const image = item.image ?? item.thumbnail ?? item.cover ?? COURSE_IMAGES[index % COURSE_IMAGES.length];
+                    const students = Number.isFinite(Number(item.students)) ? Number(item.students) : 1000 + index * 27;
+                    const rating = Number.isFinite(Number(item.rating)) ? Number(item.rating) : 4.8;
+
+                    return {
+                        id,
+                        title: course_name,
+                        description,
+                        instructor,
+                        badgeType: badge_type as Course['badgeType'],
+                        badgeColor: 'bg-brutal-yellow',
+                        statusBadge: index % 2 === 0 ? 'AKTIF' : 'BARU',
+                        image,
+                        students,
+                        rating,
+                        course_name,
+                        badge_type,
+                        modules_raw: item.modules_raw ?? item.modulesRaw
+                    } as CourseApi;
+                });
+
+                setCourses(normalized);
+                setCurrentPage(1);
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error('Gagal memuat data kelas:', error);
+                setLoading(false);
+            });
+    }, []);
+
+    /** @author Pras - Logic & Integration */
     const filteredCourses = useMemo(() => {
         return courses.filter((course) => {
-            const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesBadge = selectedFilter === 'ALL' || course.badgeType === selectedFilter;
+            const matchesSearch = course.course_name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesBadge = selectedFilter === 'ALL' || course.badge_type === selectedFilter;
             return matchesSearch && matchesBadge;
         });
     }, [courses, searchQuery, selectedFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredCourses.length / 8));
+    const indexOfLastItem = currentPage * 8;
+    const indexOfFirstItem = indexOfLastItem - 8;
+    const currentCourses = filteredCourses.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
         <section>
@@ -103,23 +183,32 @@ export default function CatalogView({
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {filteredCourses.map((course) => (
+                    {currentCourses.map((course) => {
+                        const badgeColor = course.badge_type === 'VIDEO'
+                            ? 'bg-[#FCD34D]'
+                            : course.badge_type === 'ARTIKEL'
+                                ? 'bg-[#F472B6]'
+                                : course.badge_type === 'RPS'
+                                    ? 'bg-[#A78BFA]'
+                                    : 'bg-emerald-400';
+
+                        return (
                         <article key={course.id} className="brutal-card flex flex-col overflow-hidden">
                             <div className="relative h-40 w-full bg-neutral-200 border-b-4 border-black overflow-hidden">
                                 <img
                                     src={course.image}
-                                    alt={course.title}
+                                    alt={course.course_name}
                                     className="w-full h-full object-cover object-center grayscale hover:grayscale-0 transition-all duration-300"
                                 />
-                                <span className={`absolute top-3 left-3 px-2 py-0.5 text-[10px] font-black border-2 border-black tracking-wider uppercase ${course.badgeColor}`}>
-                                    {course.badgeType}
+                                <span className={`absolute top-3 left-3 px-2 py-0.5 text-[10px] font-black border-2 border-black tracking-wider uppercase ${badgeColor}`}>
+                                    {course.badge_type}
                                 </span>
                             </div>
 
                             <div className="p-4 flex-grow flex flex-col justify-between bg-white">
                                 <div className="mb-4">
                                     <h4 className="text-base font-black leading-tight uppercase mb-1 line-clamp-2">
-                                        {course.title}
+                                        {course.course_name}
                                     </h4>
                                     <p className="text-xs text-gray-600 font-bold">
                                         Dosen: {course.instructor}
@@ -136,7 +225,44 @@ export default function CatalogView({
                                 </button>
                             </div>
                         </article>
-                    ))}
+                        );
+                    })}
+                </div>
+            )}
+
+            {!loading && filteredCourses.length > 0 && (
+                <div className="flex flex-wrap justify-center items-center gap-3 mt-10">
+                    <button
+                        type="button"
+                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        className="px-4 py-2 font-black uppercase border-4 border-black shadow-flat bg-white hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-flat-lg active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                        disabled={currentPage === 1}
+                    >
+                        Sebelumnya
+                    </button>
+                    <div className="flex gap-2">
+                        {Array.from({ length: totalPages }).map((_, index) => {
+                            const page = index + 1;
+                            return (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-4 py-2 font-black border-4 border-black shadow-flat transition-all ${currentPage === page ? 'bg-brutal-yellow' : 'bg-white'} hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-flat-lg active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
+                                >
+                                    {page}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        className="px-4 py-2 font-black uppercase border-4 border-black shadow-flat bg-white hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-flat-lg active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
+                        disabled={currentPage === totalPages}
+                    >
+                        Selanjutnya
+                    </button>
                 </div>
             )}
         </section>

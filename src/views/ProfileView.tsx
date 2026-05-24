@@ -1,4 +1,4 @@
-/** @author Agent 1 - UI/UX Layout & Agent 2 - Logic & Integration */
+/** @author ArifWicak - UI/UX Layout & Pras - Logic & Integration */
 import React from 'react';
 import type { UserProfile } from '../types/user';
 
