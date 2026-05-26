@@ -7,6 +7,10 @@ import CourseDetailView from './views/CourseDetailView';
 import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import ProfileView from './views/ProfileView';
+import PusatBantuanView from './views/PusatBantuanView';
+import SyaratLayananView from './views/SyaratLayananView';
+import KebijakanPrivasiView from './views/KebijakanPrivasiView';
+import PetaKampusView from './views/PetaKampusView';
 import type { Course } from './types/course';
 import type { UserProfile } from './types/user';
 
@@ -22,7 +26,7 @@ const STORAGE_KEY = 'selectedCourseData';
  * Aplikasi utama dengan routing sederhana berbasis state dan localStorage.
  */
 export default function App() {
-    const [activePage, setActivePage] = useState<'catalog' | 'login' | 'register' | 'profile'>('catalog');
+    const [activePage, setActivePage] = useState<'catalog' | 'login' | 'register' | 'profile' | 'kebijakan-privasi' | 'syarat-layanan' | 'peta-kampus' | 'pusat-bantuan'>('catalog');
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [selectedCourse, setSelectedCourse] = useState<SelectedCourse | null>(() => {
         if (typeof window === 'undefined') {
@@ -118,6 +122,14 @@ export default function App() {
                             onGoRegister={() => setActivePage('register')}
                         />
                     )
+                ) : activePage === 'kebijakan-privasi' ? (
+                    <KebijakanPrivasiView onBack={() => setActivePage('catalog')} />
+                ) : activePage === 'syarat-layanan' ? (
+                    <SyaratLayananView onBack={() => setActivePage('catalog')} />
+                ) : activePage === 'peta-kampus' ? (
+                    <PetaKampusView onBack={() => setActivePage('catalog')} />
+                ) : activePage === 'pusat-bantuan' ? (
+                    <PusatBantuanView onBack={() => setActivePage('catalog')} />
                 ) : selectedCourse ? (
                     <CourseDetailView
                         course={selectedCourse}
@@ -134,7 +146,7 @@ export default function App() {
                 )}
             </main>
 
-            <Footer />
+            <Footer onNavigate={(page) => setActivePage(page as any)} />
         </div>
     );
 }
